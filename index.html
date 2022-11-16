@@ -93,7 +93,7 @@
                     const bulb = meshes.find((m) => m.name == "buld.glass");
                     const manometer = meshes.find((m) => m.name == "manometer.glass");
                     // Environment Texture
-                    var hdrTexture = new BABYLON.HDRCubeTexture("textures/room.hdr", scene, 512);
+                    var hdrTexture = new BABYLON.HDRCubeTexture("room.hdr", scene, 512);
         
                     var metallic = scene.getMaterialByName("Black Metal Export");
                     metallic.environmentIntensity = 1.5; 

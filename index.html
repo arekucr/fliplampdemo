@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://preview.babylonjs.com/ammo.js"></script>
+        <script src="https://preview.babylonjs.com/cannon.js"></script>
+        <script src="https://preview.babylonjs.com/Oimo.js"></script>
+        <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var startRenderLoop = function (engine, canvas) {
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        var delayCreateScene = function () {
+            var flipLamp = null;
+            BABYLON.Database.IDBStorageEnabled = true;
+            engine.enableOfflineSupport = true; //(enabled by default)
+        
+            var scene = new BABYLON.Scene(engine);
+            scene.useOrderIndependentTransparency = true;
+        
+            var camera = new BABYLON.ArcRotateCamera("MainCamera", BABYLON.Tools.ToRadians(75), BABYLON.Tools.ToRadians(80), 3, new BABYLON.Vector3(0, 0, 0), scene);
+            camera.fov = 0.2; //Field of View of Camera Lens
+            camera.wheelPrecision = 30; //Mouse wheel speed
+            camera.lowerRadiusLimit = 2;
+            camera.upperRadiusLimit = 10;
+            camera.useFramingBehavior = true;
+        
+            camera.attachControl(true);
+        
+            BABYLON.SceneLoader.ImportMesh(
+                "",
+                "https://dl.dropbox.com/s/4dah7vo4ggl0ykj/",
+                "FlipLamp.glb",
+                scene,
+                (meshes) => {          
+                    scene.createDefaultCameraOrLight(true, true, true);
+                    //scene.createDefaultEnvironment();
+        
+                    flipLamp = meshes.find((m) => m.name == "__root__");            
+                    flipLamp.rotation = new BABYLON.Vector3(0, 0, 0); 
+        
+                    flipLamp = meshes.find((m) => m.name == "pipe.frame.017");
+                    scene.activeCamera.setTarget(flipLamp);
+                    
+        
+                    scene.stopAllAnimations();
+                    scene.animationGroups.find((anim) => anim.name == 'fliplamp').start(true);
+        
+                    const bulb = meshes.find((m) => m.name == "buld.glass");
+                    const manometer = meshes.find((m) => m.name == "manometer.glass");
+                    // Environment Texture
+                    var hdrTexture = new BABYLON.HDRCubeTexture("textures/room.hdr", scene, 512);
+        
+                    var metallic = scene.getMaterialByName("Black Metal Export");
+                    metallic.environmentIntensity = 1.5; 
+                    metallic.metallic = 1; 
+        
+                    let metallic2 = scene.getMaterialByName("Aluminium scratches");
+                    metallic2.environmentIntensity = 0.5; 
+                    metallic2.metallic = 1; 
+                    metallic2.roughness = 0.8;             
+                    //metallic.disableLighting = true;
+        
+                    let metallic3 = scene.getMaterialByName("Brushed  Aluminium");
+                    metallic3.environmentIntensity = 0; 
+                    metallic3.metallic = 1; 
+                    metallic3.roughness = 0.8;             
+                    
+        
+                    const filament = meshes.find((m) => m.name == "bulb.filament");
+                    var pointLight = new BABYLON.PointLight("pl", filament.position, scene);
+                    pointLight.intensity = 1;
+                    pointLight.range = 5;
+                    pointLight.diffuse = new BABYLON.Color3(0.78, 0.53, 0);
+                    pointLight.specular = new BABYLON.Color3(0.63, 0.48, 0);
+        
+        
+                    const cardsMesh = [];
+                    for(var i = 1; i < 25; i ++) {
+                        var cardMaterialBack = scene.getMaterialByName(`Material.Card.${String(i).padStart(2, '0')}.Back`);
+                        var cardMaterialFront = scene.getMaterialByName(`Material.Card.${String(i).padStart(2, '0')}.Front`);
+                        var card1 = meshes.find((m) => m.name == `Card.${String(i).padStart(2, '0')}_primitive0`);
+                        var card2 = meshes.find((m) => m.name == `Card.${String(i).padStart(2, '0')}_primitive1`);
+                        cardMaterialBack.environmentIntensity = 0.3; 
+                        cardMaterialFront.environmentIntensity = 0.3; 
+                        cardsMesh.push(card1);
+                        cardsMesh.push(card2);
+                    }
+                    
+                    const centralBar = meshes.find((m) => m.name == "CentralAxisWheel_primitive1"); 
+                    pointLight.excludedMeshes = [...cardsMesh, centralBar];
+        
+                    // Skybox
+                    var hdrSkybox = BABYLON.Mesh.CreateBox("hdrSkyBox", 1000.0, scene);
+                    var hdrSkyboxMaterial = new BABYLON.PBRMaterial("skyBox", scene);
+                    hdrSkyboxMaterial.backFaceCulling = false;
+                    hdrSkyboxMaterial.reflectionTexture = hdrTexture.clone();
+                    hdrSkyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+                    hdrSkyboxMaterial.microSurface = 1.0;
+                    hdrSkyboxMaterial.cameraExposure = 0.66;
+                    hdrSkyboxMaterial.cameraContrast = 1.66;
+                    hdrSkyboxMaterial.disableLighting = true;
+                    hdrSkybox.material = hdrSkyboxMaterial;
+                    hdrSkybox.infiniteDistance = true;
+                    
+                    // Create materials
+                    var glass = new BABYLON.PBRMaterial("glass", scene);
+                    glass.reflectionTexture = hdrTexture;    
+                    glass.indexOfRefraction = 0.52;
+                    glass.alpha = 0.2;
+                    glass.directIntensity = 0.0;
+                    glass.environmentIntensity = 0.7;
+                    glass.cameraExposure = 0.66;
+                    glass.cameraContrast = 1.66;
+                    glass.microSurface = 1;
+                    glass.reflectivityColor = new BABYLON.Color3(1, 0.87, 0.10);
+                    glass.albedoColor = new BABYLON.Color3(0.85, 0.6, 0.07, 0.25);
+        
+                    bulb.material = glass;
+        
+                    glass.reflectivityColor = new BABYLON.Color3(0.55, 0.55, 0.55);
+                    glass.albedoColor = new BABYLON.Color3(1, 1, 1, 0.77);
+        
+                    manometer.material = glass;
+                    
+        
+        
+                    var helper = scene.createDefaultEnvironment();
+                    helper.setMainColor(new BABYLON.Color3(0.15, 0.15, 0.15));
+                    
+                    var gl = new BABYLON.GlowLayer("glow", scene, { 
+                        mainTextureFixedSize: 1024,
+                        blurKernelSize: 1024
+                    });
+                    gl.intensity = 10;
+                }
+            );
+        
+            return scene;
+        };
+                window.initFunction = async function() {
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = delayCreateScene();};
+        initFunction().then(() => {sceneToRender = scene                    
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
